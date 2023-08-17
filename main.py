@@ -33,3 +33,21 @@ def register_user(username: str = Body(), password: str = Body()):
         raise HTTPException(status_code=400 ,detail=str(e))
 
     return {"user_id" : username}
+
+@app.get('/api/v1/login')
+def login_user(username: str, password: str):
+    try:
+        connection = sqlite3.connect(database=str(DB_LOCATION))
+        cursor = connection.cursor()
+
+        cursor.execute('''
+            SELECT * FROM user_login_data
+            WHERE username=?
+        ''',username)
+        
+        connection.commit()
+        connection.close()
+    except Exception as e:
+        raise HTTPException(status_code=400 ,detail=str(e))
+    
+    return {"data" : "Welcome to TerraVision!"}
