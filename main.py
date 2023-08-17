@@ -2,6 +2,7 @@ from fastapi import FastAPI, Body, HTTPException
 import hashlib
 from dotenv import load_dotenv
 from email.message import EmailMessage
+from models import UserRegistration, UserLogin
 import os
 import random
 import secrets
@@ -30,9 +31,9 @@ def send_otp_to_user(email: str, otp: int):
         server.send_message(message)
         
 @app.post("/api/v1/register")
-def register_user(username: str = Body(), password: str = Body(), email: str = Body()):
+def register_user(user: UserRegistration = Body()):
     salt = str(secrets.token_bytes(16).hex())
-    password_with_salt = password + salt
+    password_with_salt = user.username + salt
 
     hashed_password = hashlib.sha256(password_with_salt.encode()).hexdigest()
 
@@ -46,19 +47,19 @@ def register_user(username: str = Body(), password: str = Body(), email: str = B
         cursor.execute('''
             INSERT INTO user_login_data (username, salt, password_hash, email, otp_generated, otp_generation_time, verification_status)
             VALUES (?,?,?,?,?,?,?)
-        ''', (username,salt,hashed_password,email,otp_generated,otp_generation_time,1))
+        ''', (user.username,salt,hashed_password,user.email,otp_generated,otp_generation_time,1))
         
         connection.commit()
         connection.close()
     except Exception as e:
         raise HTTPException(status_code=400 ,detail=str(e))
 
-    send_otp_to_user(email,otp_generated)
+    send_otp_to_user(user.email,otp_generated)
 
-    return {"user_id" : username, "message" : "User Successfully Registered. You have received a mail on the above E-Mail ID. Please verify your identity to move forward."}
+    return {"user_id" : user.username, "message" : "User Successfully Registered. You have received a mail on the above E-Mail ID. Please verify your identity to move forward."}
 
 @app.get('/api/v1/login')
-def login_user(username: str, password: str):
+def login_user(user: UserLogin = Body()):
     try:
         connection = sqlite3.connect(database=str(DB_LOCATION))
         cursor = connection.cursor()
@@ -66,7 +67,7 @@ def login_user(username: str, password: str):
         cursor.execute('''
             SELECT * FROM user_login_data
             WHERE username=?
-        ''',username)
+        ''',user.username)
         
         connection.commit()
         connection.close()
