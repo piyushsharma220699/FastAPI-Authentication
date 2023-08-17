@@ -9,3 +9,7 @@ class UserRegistration(BaseModel):
 class UserLogin(BaseModel):
     username : str
     password : str
+
+class UserVerification(BaseModel):
+    email : str
+    otp : int
